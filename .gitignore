@@ -1,0 +1,55 @@
+# Kernel Module Compile Results
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.o
+.*.cmd
+.tmp_versions/
+Module.symvers
+modules.order
+
+# Compiled Source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Build directory
+build/
+out/
+
+# Dependencies
+*.d
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test Generated Files
+test/kernel/*.ko
+test/kernel/*.mod
+test/kernel/*.mod.c
+test/userspace/test_condition
+
+# Patch Backups
+*.orig
+*.rej
+*~
+
+# Log Files
+*.log

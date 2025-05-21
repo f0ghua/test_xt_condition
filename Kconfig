@@ -1,0 +1,46 @@
+# NFTables condition expression module configuration
+
+config NFT_CONDITION
+	tristate "Condition match support"
+	depends on NF_TABLES
+	help
+	  This module allows nftables rules to be dynamically enabled/disabled
+	  through procfs entries. When this module is loaded, a new 'condition'
+	  expression becomes available in nftables rules.
+
+	  Each condition references a named state in /proc/condition/<name>
+	  which can be toggled between 0 (disabled) and 1 (enabled) to 
+	  control whether matching rules are active.
+
+	  Example usage:
+	    nft 'add rule ip filter input tcp dport 22 condition "ssh_enabled" accept'
+	    echo 1 > /proc/condition/ssh_enabled  # Enable SSH access
+	    echo 0 > /proc/condition/ssh_enabled  # Disable SSH access
+
+	  To compile it as a module, choose M here.
+	  If unsure, say N.
+
+config NFT_CONDITION_DEBUG
+	bool "Condition match debugging messages"
+	depends on NFT_CONDITION
+	help
+	  This option enables additional debugging output for the condition
+	  expression module. It will log state changes, reference counting,
+	  and error conditions through the kernel log.
+
+	  Only enable this if you are debugging issues with the condition
+	  module. The debug output can be quite verbose.
+
+	  If unsure, say N.
+
+config NFT_CONDITION_PROCFS_PERMS
+	hex "Procfs entry permissions"
+	depends on NFT_CONDITION
+	default "0644"
+	help
+	  This option sets the permissions for condition procfs entries.
+	  The default 0644 allows the root user to modify conditions while
+	  letting all users read the current state.
+
+	  Format is standard octal permission bits.
+	  Default: 0644 (owner: read/write, group: read, other: read)

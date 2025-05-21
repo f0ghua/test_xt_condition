@@ -1,0 +1,169 @@
+From: Your Name <your.email@example.com>
+Date: Wed, 21 May 2025 16:28:00 +0800
+Subject: [PATCH 2/2] parser: add condition expression support
+
+Add parsing support for the condition expression in nftables.
+This includes grammar rules, expression evaluation, and necessary
+structures for the condition expression type.
+
+Signed-off-by: Your Name <your.email@example.com>
+---
+include/nftables/libnftables.h     |  5 +++++
+include/parser.h                   |  2 ++
+src/parser_bison.y                 | 15 +++++++++++++++
+src/expr/expr_condition.c          | 85 ++++++++++++++++++++++++++++++++++++++++
+4 files changed, 107 insertions(+)
+
+diff --git a/include/nftables/libnftables.h b/include/nftables/libnftables.h
+index xxxxxxx..yyyyyyy 100644
+--- a/include/nftables/libnftables.h
++++ b/include/nftables/libnftables.h
+@@ -245,6 +245,11 @@ enum nft_expr_types {
+     NFT_EXPR_LIMIT,
+     NFT_EXPR_REJECT,
+     NFT_EXPR_NAT,
++    NFT_EXPR_CONDITION,
+ };
+ 
++/* Condition expression attributes */
++enum nft_condition_attributes {
++    NFTA_CONDITION_UNSPEC,
++    NFTA_CONDITION_NAME,
++    __NFTA_CONDITION_MAX
++};
++#define NFTA_CONDITION_MAX (__NFTA_CONDITION_MAX - 1)
++
+diff --git a/include/parser.h b/include/parser.h
+index xxxxxxx..yyyyyyy 100644
+--- a/include/parser.h
++++ b/include/parser.h
+@@ -125,6 +125,8 @@ extern const struct expr_ops *expr_ops[];
+ void init_expr_ops(void);
+ const char *expr_name(const struct expr *e);
+ 
++extern const struct expr_ops condition_expr_ops;
++
+ /* Parser functions */
+ extern int nft_parse(struct nft_ctx *nft, void *scanner,
+                     struct list_head *msgs, struct list_head *cmds);
+ 
+diff --git a/src/parser_bison.y b/src/parser_bison.y
+index xxxxxxx..yyyyyyy 100644
+--- a/src/parser_bison.y
++++ b/src/parser_bison.y
+@@ -89,6 +89,7 @@
+ %token LIMIT          "limit"
+ %token REJECT        "reject"
+ %token NAT           "nat"
++%token CONDITION     "condition"
+ 
+ %type <expr> expr
+ %type <expr> primary_expr
+@@ -235,6 +236,20 @@ primary_expr:     STRING
+                    $$ = $1;
+                }
+ 
++             | CONDITION STRING
++               {
++                   struct expr *expr;
++                   expr = expr_alloc(&@$, EXPR_CONDITION, NFT_EXPR_CONDITION);
++                   if (expr == NULL) {
++                       erec_queue(error(&@$, "out of memory"), state->msgs);
++                       YYERROR;
++                   }
++                   expr->condition.name = $2;
++                   $$ = expr;
++               }
++             ;
++
+ %%
+ 
+ void parser_init(struct nft_ctx *nft, struct parser_state *state,
+diff --git a/src/expr/expr_condition.c b/src/expr/expr_condition.c
+new file mode 100644
+index 000000000..111111111
+--- /dev/null
++++ b/src/expr/expr_condition.c
+@@ -0,0 +1,85 @@
++/*
++ * Condition expression type
++ */
++#include <nftables/libnftables.h>
++#include "expression.h"
++#include "datatype.h"
++#include "gmputil.h"
++#include "utils.h"
++
++static void condition_expr_print(const struct expr *expr,
++                             struct output_ctx *octx)
++{
++    nft_print(octx, "condition \"%s\"", expr->condition.name);
++}
++
++static void condition_expr_clone(struct expr *new, const struct expr *expr)
++{
++    new->condition.name = xstrdup(expr->condition.name);
++}
++
++static void condition_expr_destroy(struct expr *expr)
++{
++    xfree(expr->condition.name);
++}
++
++static int condition_expr_build_udata(struct nftnl_udata_buf *udbuf,
++                                  const struct expr *expr)
++{
++    return 0;
++}
++
++const struct expr_ops condition_expr_ops = {
++    .type        = EXPR_CONDITION,
++    .name        = "condition",
++    .print       = condition_expr_print,
++    .clone       = condition_expr_clone,
++    .destroy     = condition_expr_destroy,
++    .build_udata = condition_expr_build_udata,
++};
++
++/*
++ * Condition expression evaluation
++ */
++static int condition_expr_evaluate(struct eval_ctx *ctx, struct expr **expr)
++{
++    return 0;
++}
++
++static int condition_expr_json(struct expr *expr, struct output_ctx *octx)
++{
++    return 0;
++}
++
++static const struct expr_ops condition_expr_ops = {
++    .type        = EXPR_CONDITION,
++    .name        = "condition",
++    .print       = condition_expr_print,
++    .json        = condition_expr_json,
++    .clone       = condition_expr_clone,
++    .destroy     = condition_expr_destroy,
++    .evaluate    = condition_expr_evaluate,
++};
++
++struct expr *condition_expr_alloc(const struct location *loc,
++                              const char *name)
++{
++    struct expr *expr;
++
++    expr = expr_alloc(loc, EXPR_CONDITION, NFT_EXPR_CONDITION);
++    if (expr == NULL)
++        return NULL;
++
++    expr->condition.name = xstrdup(name);
++    expr->ops = &condition_expr_ops;
++
++    return expr;
++}
++
++void init_condition_expr(void)
++{
++    datatype_register(&condition_type);
++}

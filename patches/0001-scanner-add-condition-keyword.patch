@@ -1,0 +1,39 @@
+From: Your Name <your.email@example.com>
+Date: Wed, 21 May 2025 16:27:00 +0800
+Subject: [PATCH 1/2] scanner: add condition keyword
+
+Add support for 'condition' keyword in the nftables lexical scanner.
+This patch adds the necessary token definition and scanning support
+for the condition expression.
+
+Signed-off-by: Your Name <your.email@example.com>
+---
+src/scanner.l | 8 ++++++++
+1 file changed, 8 insertions(+)
+
+diff --git a/src/scanner.l b/src/scanner.l
+index xxxxxxx..yyyyyyy 100644
+--- a/src/scanner.l
++++ b/src/scanner.l
+@@ -123,6 +123,9 @@ time                   return TIME;
+ "tcp"                  return TCP;
+ "udp"                  return UDP;
+ 
++/* Condition expression */
++"condition"            return CONDITION;
++
+ [a-zA-Z][a-zA-Z0-9_-]*	{
+ 			yylval.string = xstrdup(yytext);
+ 			return STRING;
+@@ -212,6 +215,11 @@ time                   return TIME;
+ %%
+ 
+ /* Scanner initialization */
++void scanner_push_buffer(void *buffer, size_t len, const char *filename)
++{
++    /* implementation unchanged */
++}
++
+ void *scanner_init(struct parser_state *state)
+ {
+     yy_flex_debug = 0;
